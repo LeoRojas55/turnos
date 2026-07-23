@@ -193,6 +193,33 @@
   .hclose{width:100%; margin-top:14px; min-height:44px; border-radius:12px; border:1px solid var(--line); background:#fff; font-weight:700; cursor:pointer;}
   .hempty{color:var(--ink-soft); font-size:13px; padding:20px 0; text-align:center;}
 
+  /* ---- export panel ---- */
+  .export-overlay{position:fixed; inset:0; background:rgba(30,30,20,.35); z-index:90; display:none; align-items:flex-end; justify-content:center;}
+  .export-overlay.show{display:flex;}
+  .export-panel{
+    width:100%; max-width:520px; max-height:88vh; background:var(--surface); border-radius:20px 20px 0 0;
+    padding:20px; overflow-y:auto; border:1px solid var(--line); border-bottom:none;
+  }
+  @media(min-width:760px){
+    .export-overlay{align-items:center;}
+    .export-panel{border-radius:20px; border-bottom:1px solid var(--line);}
+  }
+  .export-panel h3{font-family:'Fraunces',serif; font-size:20px; margin:0 0 2px;}
+  .export-panel .esub{color:var(--ink-soft); font-size:12.5px; margin-bottom:14px;}
+  .export-panel textarea{
+    width:100%; min-height:260px; border:1px solid var(--line); border-radius:12px; padding:12px;
+    font-family:'Inter'; font-size:13px; line-height:1.5; color:var(--ink); resize:vertical; background:var(--bg);
+  }
+  .export-actions{display:flex; flex-wrap:wrap; gap:8px; margin-top:12px;}
+  .export-actions button{
+    flex:1; min-width:140px; min-height:46px; border-radius:12px; border:1px solid var(--line);
+    font-weight:700; cursor:pointer; font-size:13.5px; display:flex; align-items:center; justify-content:center; gap:6px;
+  }
+  .btn-wa{background:#25D366; color:#fff; border-color:#25D366 !important;}
+  .btn-wa:hover{opacity:.92;}
+  .copy-msg{font-size:12px; color:var(--accent); font-weight:700; margin-top:8px; min-height:14px;}
+  .eclose{width:100%; margin-top:10px; min-height:44px; border-radius:12px; border:1px solid var(--line); background:#fff; font-weight:700; cursor:pointer;}
+
   @media (max-width:980px){ .summary{grid-template-columns:repeat(2,1fr);} }
 
   @media (max-width:640px){
@@ -232,7 +259,8 @@
         <span id="userName"></span>
         <button id="switchUserBtn">cambiar</button>
       </div>
-      <button class="icon-btn" id="historyBtn" title="Ver historial">🕒 Historial</button>
+      <button class="icon-btn" id="exportBtn" title="Exportar resumen">📤 Resumen</button>
+      <button class="icon-btn" id="historyBtn" title="Ver historial" style="display:none;">🕒 Historial</button>
       <button class="icon-btn" id="todayBtn">Hoy</button>
       <div class="month-nav">
         <button id="prevBtn">‹</button>
@@ -282,6 +310,21 @@
   </div>
 </div>
 
+<!-- EXPORT -->
+<div class="export-overlay" id="exportOverlay">
+  <div class="export-panel">
+    <h3>Resumen del mes</h3>
+    <div class="esub">Revisa o edita el texto y envíalo por WhatsApp o donde prefieras</div>
+    <textarea id="exportText"></textarea>
+    <div class="export-actions">
+      <button class="btn-wa" id="waShareBtn">💬 Enviar por WhatsApp</button>
+      <button class="btn-ghost" id="copyBtn" style="border:1px solid var(--line);">📋 Copiar texto</button>
+    </div>
+    <div class="copy-msg" id="copyMsg"></div>
+    <button class="eclose" id="exportClose">Cerrar</button>
+  </div>
+</div>
+
 <!-- HISTORY -->
 <div class="history-overlay" id="historyOverlay">
   <div class="history-panel">
@@ -309,6 +352,7 @@ let state = {
   history: []
 };
 
+const HISTORY_ACCESS_ID = 's1'; // Alba Luz es la única con acceso al historial
 let view = new Date(); view.setDate(1);
 const todayStr = fmt(new Date());
 let currentUser = null;   // sibling object
@@ -431,6 +475,8 @@ function showApp(){
   badge.style.display='flex';
   document.getElementById('userDot').style.background = currentUser.hex;
   document.getElementById('userName').textContent = currentUser.name;
+  document.getElementById('historyBtn').style.display =
+    (currentUser.id === HISTORY_ACCESS_ID) ? 'flex' : 'none';
   render();
 }
 
@@ -608,6 +654,7 @@ function renderHistory(){
 }
 
 document.getElementById('historyBtn').onclick = ()=>{
+  if(!currentUser || currentUser.id !== HISTORY_ACCESS_ID) return;
   renderHistory();
   document.getElementById('historyOverlay').classList.add('show');
 };
@@ -616,6 +663,66 @@ document.getElementById('historyClose').onclick = ()=>{
 };
 document.getElementById('historyOverlay').onclick = (e)=>{
   if(e.target.id==='historyOverlay') document.getElementById('historyOverlay').classList.remove('show');
+};
+
+/* ---------------- EXPORT SUMMARY ---------------- */
+function buildSummaryText(){
+  const year = view.getFullYear(), month = view.getMonth();
+  const counts = monthCounts(year, month);
+  const daysInMonth = new Date(year, month+1, 0).getDate();
+  const assignedDays = Object.values(counts).reduce((a,b)=>a+b,0);
+  const unassigned = daysInMonth - assignedDays;
+
+  const ranked = state.siblings
+    .map(s=>({name:s.name, c:counts[s.id]||0}))
+    .sort((a,b)=>b.c-a.c);
+
+  let lines = [];
+  lines.push(`*Turnos de mamá — ${MONTHS[month]} ${year}*`);
+  lines.push('');
+  ranked.forEach(r=>{
+    const pct = daysInMonth ? Math.round((r.c/daysInMonth)*100) : 0;
+    lines.push(`• ${r.name}: ${r.c} días (${pct}%)`);
+  });
+  if(unassigned>0){
+    lines.push('');
+    lines.push(`⚠️ Días sin asignar: ${unassigned}`);
+  }
+  lines.push('');
+  lines.push(`Total días del mes: ${daysInMonth}`);
+  lines.push('');
+  lines.push(`Generado el ${new Date().toLocaleDateString('es-CO',{day:'numeric', month:'long', year:'numeric'})}`);
+  return lines.join('\n');
+}
+
+document.getElementById('exportBtn').onclick = ()=>{
+  document.getElementById('exportText').value = buildSummaryText();
+  document.getElementById('copyMsg').textContent = '';
+  document.getElementById('exportOverlay').classList.add('show');
+};
+document.getElementById('exportClose').onclick = ()=>{
+  document.getElementById('exportOverlay').classList.remove('show');
+};
+document.getElementById('exportOverlay').onclick = (e)=>{
+  if(e.target.id==='exportOverlay') document.getElementById('exportOverlay').classList.remove('show');
+};
+document.getElementById('waShareBtn').onclick = ()=>{
+  const text = document.getElementById('exportText').value;
+  window.open('https://wa.me/?text='+encodeURIComponent(text), '_blank');
+};
+document.getElementById('copyBtn').onclick = async ()=>{
+  const text = document.getElementById('exportText').value;
+  const msg = document.getElementById('copyMsg');
+  try{
+    await navigator.clipboard.writeText(text);
+    msg.textContent = 'Texto copiado ✓';
+  }catch(e){
+    const ta = document.getElementById('exportText');
+    ta.select();
+    document.execCommand('copy');
+    msg.textContent = 'Texto copiado ✓';
+  }
+  setTimeout(()=>{ msg.textContent=''; }, 2500);
 };
 
 document.getElementById('prevBtn').onclick = ()=>{ view.setMonth(view.getMonth()-1); render(); };
