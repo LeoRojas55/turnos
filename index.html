@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Turnos de mamá — calendario de cuidado</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #FAF7F1;
+    --surface: #FFFFFF;
+    --ink: #2A2F2A;
+    --ink-soft: #6E7469;
+    --line: #E6E0D3;
+    --accent: #3F5A4D;
+    --accent-soft: #E7EDE9;
+    --warn: #B5482E;
+    --s1: #C1694F; --s2: #7A8B6F; --s3: #5B7C99; --s4: #8B5A72; --s5: #C9A227;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg); color:var(--ink); font-family:'Inter',sans-serif;
+    padding:20px 24px 60px; min-height:100vh;
+  }
+  .wrap{max-width:1280px;margin:0 auto;}
+  button{font-family:inherit;}
+
+  /* ---- header ---- */
+  header{
+    display:flex; flex-wrap:wrap; align-items:flex-end; justify-content:space-between;
+    gap:16px; margin-bottom:22px; padding-bottom:18px; border-bottom:1px solid var(--line);
+  }
+  .title-block h1{
+    font-family:'Fraunces',serif; font-weight:600; font-size:clamp(24px,4.5vw,42px);
+    margin:0 0 4px; letter-spacing:-0.01em;
+  }
+  .title-block p{margin:0; color:var(--ink-soft); font-size:13.5px;}
+  .header-right{display:flex; flex-wrap:wrap; gap:10px; align-items:center;}
+  .user-badge{
+    display:flex; align-items:center; gap:8px; background:var(--surface); border:1px solid var(--line);
+    border-radius:12px; padding:7px 12px; font-size:13px; font-weight:700;
+  }
+  .user-badge .dot{width:10px;height:10px;border-radius:50%;}
+  .user-badge button{
+    border:none; background:none; color:var(--ink-soft); font-size:11.5px; text-decoration:underline;
+    cursor:pointer; padding:0; font-weight:600;
+  }
+  .icon-btn{
+    min-width:40px; min-height:40px; border-radius:10px; border:1px solid var(--line); background:#fff;
+    color:var(--accent); font-size:14px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px;
+    padding:0 12px; font-weight:700;
+  }
+  .icon-btn:hover{background:var(--accent-soft);}
+  .month-nav{
+    display:flex; align-items:center; gap:10px; background:var(--surface);
+    border:1px solid var(--line); border-radius:14px; padding:6px 8px;
+  }
+  .month-nav button{
+    width:40px; height:40px; border-radius:9px; border:1px solid var(--line);
+    background:#fff; color:var(--accent); font-size:18px; cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .month-nav button:hover{background:var(--accent-soft);}
+  .month-nav .current{
+    font-family:'Fraunces',serif; font-size:17px; font-weight:600; min-width:150px;
+    text-align:center; text-transform:capitalize;
+  }
+
+  /* ---- summary cards ---- */
+  .summary{
+    display:grid; grid-template-columns:repeat(5,1fr); gap:12px; margin-bottom:24px;
+  }
+  .card{
+    background:var(--surface); border:1px solid var(--line); border-radius:16px;
+    padding:14px 14px 12px; position:relative; overflow:hidden; min-width:0;
+  }
+  .card::before{content:''; position:absolute; left:0; top:0; bottom:0; width:5px; background:var(--c);}
+  .card .name-row{display:flex; align-items:center; gap:8px; margin-bottom:8px;}
+  .dot{width:11px; height:11px; border-radius:50%; background:var(--c); flex:none;}
+  .name-input{
+    font-family:'Inter'; font-weight:700; font-size:13.5px; border:none; background:transparent;
+    color:var(--ink); width:100%; padding:2px 0; border-bottom:1px dashed transparent; min-width:0;
+  }
+  .name-input:disabled{color:var(--ink); opacity:.85;}
+  .name-input:not(:disabled):hover, .name-input:not(:disabled):focus{border-bottom:1px dashed var(--line); outline:none;}
+  .card .big{font-family:'Fraunces',serif; font-size:30px; font-weight:600; line-height:1;}
+  .card .unit{font-size:11.5px; color:var(--ink-soft); font-weight:500;}
+  .bar-track{height:6px; background:var(--accent-soft); border-radius:4px; margin:9px 0 6px; overflow:hidden;}
+  .bar-fill{height:100%; background:var(--c); border-radius:4px; transition:width .3s;}
+  .card .hist{font-size:11px; color:var(--ink-soft);}
+  .card.flag-low::after{
+    content:'menos turnos'; position:absolute; top:12px; right:12px; font-size:9.5px;
+    color:var(--accent); background:var(--accent-soft); padding:2px 7px; border-radius:20px; font-weight:700;
+  }
+  .card.flag-high::after{
+    content:'más turnos'; position:absolute; top:12px; right:12px; font-size:9.5px;
+    color:var(--warn); background:#F6E7E2; padding:2px 7px; border-radius:20px; font-weight:700;
+  }
+
+  /* ---- calendar ---- */
+  .cal-shell{background:var(--surface); border:1px solid var(--line); border-radius:20px; padding:18px;}
+  .weekdays{display:grid; grid-template-columns:repeat(7,1fr); gap:8px; margin-bottom:8px;}
+  .weekdays span{text-align:center; font-size:11px; font-weight:700; letter-spacing:.05em; text-transform:uppercase; color:var(--ink-soft);}
+  .grid{display:grid; grid-template-columns:repeat(7,1fr); gap:8px;}
+  .day{
+    position:relative; min-height:112px; border-radius:12px; border:1px solid var(--line);
+    background:#fff; padding:8px; cursor:pointer; transition:.12s; display:flex; flex-direction:column;
+  }
+  .day:hover{border-color:var(--accent); box-shadow:0 0 0 2px var(--accent-soft) inset;}
+  .day.pad{background:transparent; border:1px dashed var(--line); cursor:default; opacity:.35;}
+  .day.pad:hover{box-shadow:none; border-color:var(--line);}
+  .day .num{font-family:'Fraunces',serif; font-size:16px; font-weight:600;}
+  .day.today .num{
+    display:inline-flex; align-items:center; justify-content:center; width:24px; height:24px;
+    background:var(--accent); color:#fff; border-radius:50%; font-size:13px;
+  }
+  .day .assign{
+    margin-top:auto; font-size:11.5px; font-weight:700; padding:5px 7px; border-radius:8px;
+    display:inline-flex; align-items:center; gap:5px; align-self:flex-start; max-width:100%;
+  }
+  .day .assign .adot{width:7px;height:7px;border-radius:50%;flex:none;}
+  .day .assign span{overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .day.empty-cell .assign{color:var(--ink-soft); background:var(--bg); border:1px dashed var(--line); font-weight:600;}
+
+  /* ---- popover ---- */
+  .backdrop{position:fixed; inset:0; background:rgba(30,30,20,.28); z-index:40; display:none;}
+  .backdrop.show{display:block;}
+  .pop{
+    position:fixed; z-index:50; background:#fff; border:1px solid var(--line); border-radius:14px;
+    box-shadow:0 14px 40px rgba(30,30,20,.18); padding:10px; display:none; min-width:190px;
+  }
+  .pop.show{display:block;}
+  .pop .opt{display:flex; align-items:center; gap:9px; padding:10px 9px; border-radius:9px; cursor:pointer; font-size:14px; font-weight:600;}
+  .pop .opt:hover{background:var(--accent-soft);}
+  .pop .opt .adot{width:10px; height:10px; border-radius:50%; flex:none;}
+  .pop .clear{color:var(--warn); border-top:1px solid var(--line); margin-top:6px; padding-top:9px;}
+
+  /* ---- footer ---- */
+  .footnote{margin-top:18px; font-size:12px; color:var(--ink-soft); display:flex; align-items:flex-start; gap:8px;}
+  .footnote svg{flex:none; margin-top:1px;}
+
+  /* ---- login overlay ---- */
+  .login-overlay{
+    position:fixed; inset:0; background:var(--bg); z-index:100; display:flex; align-items:center; justify-content:center; padding:20px;
+  }
+  .login-card{
+    width:100%; max-width:380px; background:var(--surface); border:1px solid var(--line); border-radius:20px; padding:26px 24px;
+  }
+  .login-card h2{font-family:'Fraunces',serif; font-size:24px; margin:0 0 4px; font-weight:600;}
+  .login-card p{margin:0 0 18px; color:var(--ink-soft); font-size:13.5px;}
+  .who-list{display:flex; flex-direction:column; gap:8px; margin-bottom:6px;}
+  .who-opt{
+    display:flex; align-items:center; gap:10px; padding:12px 14px; border-radius:12px; border:1px solid var(--line);
+    background:#fff; cursor:pointer; font-weight:700; font-size:14.5px;
+  }
+  .who-opt:hover{border-color:var(--accent); background:var(--accent-soft);}
+  .who-opt .dot{width:12px;height:12px;border-radius:50%;}
+  .pin-step{display:none; flex-direction:column; gap:10px;}
+  .pin-step.show{display:flex;}
+  .pin-step input{
+    font-size:22px; letter-spacing:8px; text-align:center; padding:12px; border-radius:12px;
+    border:1px solid var(--line); font-family:'Inter'; font-weight:700;
+  }
+  .pin-step input:focus{outline:2px solid var(--accent); border-color:var(--accent);}
+  .pin-actions{display:flex; gap:8px;}
+  .pin-actions button{flex:1; min-height:44px; border-radius:12px; border:1px solid var(--line); font-weight:700; cursor:pointer; font-size:13.5px;}
+  .btn-primary{background:var(--accent); color:#fff; border-color:var(--accent) !important;}
+  .btn-primary:hover{opacity:.92;}
+  .btn-ghost{background:#fff; color:var(--ink-soft);}
+  .login-err{color:var(--warn); font-size:12.5px; min-height:16px;}
+  .login-hint{font-size:11.5px; color:var(--ink-soft); margin-top:2px;}
+
+  /* ---- history panel ---- */
+  .history-overlay{position:fixed; inset:0; background:rgba(30,30,20,.35); z-index:90; display:none; align-items:flex-end; justify-content:center;}
+  .history-overlay.show{display:flex;}
+  .history-panel{
+    width:100%; max-width:640px; max-height:82vh; background:var(--surface); border-radius:20px 20px 0 0;
+    padding:20px; overflow-y:auto; border:1px solid var(--line); border-bottom:none;
+  }
+  @media(min-width:760px){
+    .history-overlay{align-items:center;}
+    .history-panel{border-radius:20px; border-bottom:1px solid var(--line); max-height:78vh;}
+  }
+  .history-panel h3{font-family:'Fraunces',serif; font-size:20px; margin:0 0 2px;}
+  .history-panel .hsub{color:var(--ink-soft); font-size:12.5px; margin-bottom:14px;}
+  .hentry{display:flex; gap:10px; padding:10px 0; border-bottom:1px solid var(--line); font-size:13px;}
+  .hentry .hdot{width:9px;height:9px;border-radius:50%; margin-top:4px; flex:none;}
+  .hentry b{font-weight:700;}
+  .hentry .htime{color:var(--ink-soft); font-size:11px; margin-top:2px;}
+  .hclose{width:100%; margin-top:14px; min-height:44px; border-radius:12px; border:1px solid var(--line); background:#fff; font-weight:700; cursor:pointer;}
+  .hempty{color:var(--ink-soft); font-size:13px; padding:20px 0; text-align:center;}
+
+  @media (max-width:980px){ .summary{grid-template-columns:repeat(2,1fr);} }
+
+  @media (max-width:640px){
+    body{padding:14px 12px 40px;}
+    header{flex-direction:column; align-items:stretch;}
+    .header-right{justify-content:space-between;}
+    .month-nav{flex:1; justify-content:space-between;}
+    .summary{grid-template-columns:repeat(2,1fr); gap:8px;}
+    .card{padding:11px;}
+    .card .big{font-size:24px;}
+    .cal-shell{padding:12px; border-radius:16px;}
+    .weekdays span{font-size:9.5px;}
+    .grid{gap:5px;}
+    .day{min-height:64px; padding:5px; border-radius:9px;}
+    .day .num{font-size:12.5px;}
+    .day.today .num{width:19px;height:19px;font-size:10.5px;}
+    .day .assign{font-size:0; padding:0; background:none !important; border:none !important;}
+    .day .assign .adot{width:9px; height:9px; margin:2px auto 0;}
+    .day .assign span{display:none;}
+    .day.empty-cell .assign{display:none;}
+    .pop{position:fixed !important; left:0 !important; right:0 !important; bottom:0 !important; top:auto !important;
+      width:100%; border-radius:18px 18px 0 0; max-height:70vh; overflow-y:auto;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="title-block">
+      <h1>Turnos de mamá</h1>
+      <p>Calendario compartido — se sincroniza entre todos los dispositivos</p>
+    </div>
+    <div class="header-right">
+      <div class="user-badge" id="userBadge" style="display:none;">
+        <span class="dot" id="userDot"></span>
+        <span id="userName"></span>
+        <button id="switchUserBtn">cambiar</button>
+      </div>
+      <button class="icon-btn" id="historyBtn" title="Ver historial">🕒 Historial</button>
+      <button class="icon-btn" id="todayBtn">Hoy</button>
+      <div class="month-nav">
+        <button id="prevBtn">‹</button>
+        <div class="current" id="currentLabel">—</div>
+        <button id="nextBtn">›</button>
+      </div>
+    </div>
+  </header>
+
+  <section class="summary" id="summary"></section>
+
+  <section class="cal-shell">
+    <div class="weekdays"><span>Lun</span><span>Mar</span><span>Mié</span><span>Jue</span><span>Vie</span><span>Sáb</span><span>Dom</span></div>
+    <div class="grid" id="grid"></div>
+  </section>
+
+  <div class="footnote">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+    <span>Los cambios se guardan en un servidor compartido: lo que registre cualquier hermano se ve al instante desde cualquier otro celular o ciudad. Cada quien inicia sesión con su nombre y un PIN de 4 dígitos para que quede registrado quién hizo cada cambio.</span>
+  </div>
+
+</div>
+
+<div class="backdrop" id="backdrop"></div>
+<div class="pop" id="pop"></div>
+
+<!-- LOGIN -->
+<div class="login-overlay" id="loginOverlay">
+  <div class="login-card">
+    <h2>¿Quién eres?</h2>
+    <p>Elige tu nombre para identificar tus cambios en el calendario.</p>
+    <div class="who-list" id="whoList"></div>
+
+    <div class="pin-step" id="pinStep">
+      <div id="pinTitle" style="font-weight:700; font-size:14px;"></div>
+      <input type="password" id="pinInput" inputmode="numeric" maxlength="4" placeholder="••••">
+      <div class="pin-step" id="pinConfirmWrap" style="display:none;">
+        <input type="password" id="pinConfirmInput" inputmode="numeric" maxlength="4" placeholder="Repite el PIN">
+      </div>
+      <div class="login-err" id="loginErr"></div>
+      <div class="pin-actions">
+        <button class="btn-ghost" id="pinBack">Atrás</button>
+        <button class="btn-primary" id="pinSubmit">Entrar</button>
+      </div>
+      <div class="login-hint" id="pinHint"></div>
+    </div>
+  </div>
+</div>
+
+<!-- HISTORY -->
+<div class="history-overlay" id="historyOverlay">
+  <div class="history-panel">
+    <h3>Historial de cambios</h3>
+    <div class="hsub">Solo visible para quien inicia sesión con su nombre y PIN</div>
+    <div id="historyList"></div>
+    <button class="hclose" id="historyClose">Cerrar</button>
+  </div>
+</div>
+
+<script>
+const MONTHS = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+const STORAGE_KEY = 'cuidado-mama:data';
+const IDENTITY_KEY = 'cuidado-mama:my-identity';
+
+let state = {
+  siblings: [
+    {id:'s1', name:'Hermano 1', hex:'#C1694F', pinHash:null},
+    {id:'s2', name:'Hermano 2', hex:'#7A8B6F', pinHash:null},
+    {id:'s3', name:'Hermano 3', hex:'#5B7C99', pinHash:null},
+    {id:'s4', name:'Hermano 4', hex:'#8B5A72', pinHash:null},
+    {id:'s5', name:'Hermano 5', hex:'#C9A227', pinHash:null},
+  ],
+  assignments: {},
+  history: []
+};
+
+let view = new Date(); view.setDate(1);
+const todayStr = fmt(new Date());
+let currentUser = null;   // sibling object
+let pendingSibling = null;
+let pinMode = null; // 'create' | 'verify'
+
+function fmt(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+
+async function sha256(text){
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+
+let saveTimer=null;
+function saveState(){
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(async ()=>{
+    try{ await window.storage.set(STORAGE_KEY, JSON.stringify(state), true); }
+    catch(e){ console.error('No se pudo guardar', e); }
+  }, 200);
+}
+
+async function loadState(){
+  try{
+    const res = await window.storage.get(STORAGE_KEY, true);
+    if(res && res.value){
+      const parsed = JSON.parse(res.value);
+      if(parsed.siblings) state.siblings = parsed.siblings;
+      if(parsed.assignments) state.assignments = parsed.assignments;
+      if(parsed.history) state.history = parsed.history;
+    }
+  }catch(e){ /* primera vez, se usan valores por defecto */ }
+
+  try{
+    const idRes = await window.storage.get(IDENTITY_KEY, false);
+    if(idRes && idRes.value){
+      const sib = state.siblings.find(s=>s.id===idRes.value);
+      if(sib){ currentUser = sib; }
+    }
+  }catch(e){ /* sin sesión guardada en este dispositivo */ }
+
+  if(currentUser){ showApp(); } else { showLogin(); }
+}
+
+function siblingById(id){ return state.siblings.find(s=>s.id===id); }
+
+/* ---------------- LOGIN ---------------- */
+function showLogin(){
+  document.getElementById('loginOverlay').style.display='flex';
+  const list = document.getElementById('whoList');
+  list.innerHTML='';
+  state.siblings.forEach(s=>{
+    const div = document.createElement('div');
+    div.className='who-opt';
+    div.innerHTML = `<span class="dot" style="background:${s.hex}"></span>${s.name}`;
+    div.onclick = ()=> startPinFlow(s);
+    list.appendChild(div);
+  });
+  document.getElementById('pinStep').classList.remove('show');
+  list.style.display='flex';
+}
+
+function startPinFlow(sib){
+  pendingSibling = sib;
+  pinMode = sib.pinHash ? 'verify' : 'create';
+  document.getElementById('whoList').style.display='none';
+  document.getElementById('pinStep').classList.add('show');
+  document.getElementById('pinConfirmWrap').style.display = pinMode==='create' ? 'flex' : 'none';
+  document.getElementById('pinTitle').textContent = (pinMode==='create')
+    ? `Crea un PIN de 4 dígitos para ${sib.name}`
+    : `Ingresa el PIN de ${sib.name}`;
+  document.getElementById('pinHint').textContent = (pinMode==='create')
+    ? 'Este PIN se usará siempre que inicies sesión como ' + sib.name + '.'
+    : '';
+  document.getElementById('pinInput').value='';
+  document.getElementById('pinConfirmInput').value='';
+  document.getElementById('loginErr').textContent='';
+  setTimeout(()=>document.getElementById('pinInput').focus(), 50);
+}
+
+document.getElementById('pinBack').onclick = ()=>{
+  document.getElementById('pinStep').classList.remove('show');
+  document.getElementById('whoList').style.display='flex';
+};
+
+document.getElementById('pinSubmit').onclick = async ()=>{
+  const pin = document.getElementById('pinInput').value.trim();
+  const err = document.getElementById('loginErr');
+  if(!/^\d{4}$/.test(pin)){ err.textContent='El PIN debe tener 4 dígitos.'; return; }
+
+  if(pinMode==='create'){
+    const confirm = document.getElementById('pinConfirmInput').value.trim();
+    if(pin !== confirm){ err.textContent='Los PIN no coinciden.'; return; }
+    pendingSibling.pinHash = await sha256(pin);
+    saveState();
+    await completeLogin(pendingSibling);
+  } else {
+    const hash = await sha256(pin);
+    if(hash !== pendingSibling.pinHash){ err.textContent='PIN incorrecto.'; return; }
+    await completeLogin(pendingSibling);
+  }
+};
+
+async function completeLogin(sib){
+  currentUser = sib;
+  try{ await window.storage.set(IDENTITY_KEY, sib.id, false); }catch(e){}
+  document.getElementById('loginOverlay').style.display='none';
+  showApp();
+}
+
+document.getElementById('switchUserBtn').onclick = async ()=>{
+  currentUser = null;
+  try{ await window.storage.delete(IDENTITY_KEY, false); }catch(e){}
+  showLogin();
+};
+
+/* ---------------- APP ---------------- */
+function showApp(){
+  const badge = document.getElementById('userBadge');
+  badge.style.display='flex';
+  document.getElementById('userDot').style.background = currentUser.hex;
+  document.getElementById('userName').textContent = currentUser.name;
+  render();
+}
+
+function render(){ renderHeader(); renderSummary(); renderGrid(); }
+
+function renderHeader(){
+  document.getElementById('currentLabel').textContent = MONTHS[view.getMonth()]+' '+view.getFullYear();
+}
+
+function monthCounts(year, month){
+  const counts={}; state.siblings.forEach(s=>counts[s.id]=0);
+  Object.entries(state.assignments).forEach(([date,sid])=>{
+    const [y,m]=date.split('-').map(Number);
+    if(y===year && m===month+1 && counts[sid]!==undefined) counts[sid]++;
+  });
+  return counts;
+}
+function totalCounts(){
+  const counts={}; state.siblings.forEach(s=>counts[s.id]=0);
+  Object.values(state.assignments).forEach(sid=>{ if(counts[sid]!==undefined) counts[sid]++; });
+  return counts;
+}
+
+function renderSummary(){
+  const counts = monthCounts(view.getFullYear(), view.getMonth());
+  const totals = totalCounts();
+  const daysInMonth = new Date(view.getFullYear(), view.getMonth()+1, 0).getDate();
+  const values = Object.values(counts);
+  const max = Math.max(...values), min = Math.min(...values), spread = max-min;
+
+  const el = document.getElementById('summary');
+  el.innerHTML='';
+  state.siblings.forEach(s=>{
+    const c = counts[s.id]||0, t = totals[s.id]||0;
+    const pct = daysInMonth ? Math.round((c/daysInMonth)*100) : 0;
+    const card = document.createElement('div');
+    card.className='card';
+    if(spread>=3 && c===min) card.classList.add('flag-low');
+    if(spread>=3 && c===max && max>0) card.classList.add('flag-high');
+    card.style.setProperty('--c', s.hex);
+    const isMe = currentUser && s.id===currentUser.id;
+    card.innerHTML = `
+      <div class="name-row">
+        <span class="dot"></span>
+        <input class="name-input" value="${s.name}" data-id="${s.id}" spellcheck="false" ${isMe?'':'disabled'}>
+      </div>
+      <div class="big">${c}<span class="unit"> días</span></div>
+      <div class="bar-track"><div class="bar-fill" style="width:${pct}%"></div></div>
+      <div class="hist">Histórico total: ${t} días</div>`;
+    el.appendChild(card);
+  });
+  el.querySelectorAll('.name-input:not(:disabled)').forEach(inp=>{
+    inp.addEventListener('change',(e)=>{
+      const sib = siblingById(e.target.dataset.id);
+      const oldName = sib.name;
+      sib.name = e.target.value.trim() || sib.name;
+      if(oldName !== sib.name){
+        pushHistory(null, null, null, `${oldName} cambió su nombre a ${sib.name}`);
+      }
+      saveState(); renderGrid();
+    });
+  });
+}
+
+function renderGrid(){
+  const grid = document.getElementById('grid');
+  grid.innerHTML='';
+  const year=view.getFullYear(), month=view.getMonth();
+  const firstDay = new Date(year, month, 1);
+  let startOffset = firstDay.getDay()-1; if(startOffset<0) startOffset=6;
+  const daysInMonth = new Date(year, month+1, 0).getDate();
+  const prevDaysInMonth = new Date(year, month, 0).getDate();
+  const totalCells = Math.ceil((startOffset+daysInMonth)/7)*7;
+
+  for(let i=0;i<totalCells;i++){
+    const dayNum = i-startOffset+1;
+    const cell = document.createElement('div');
+    if(dayNum<1 || dayNum>daysInMonth){
+      cell.className='day pad';
+      const realNum = dayNum<1 ? prevDaysInMonth+dayNum : dayNum-daysInMonth;
+      cell.innerHTML = `<span class="num">${realNum}</span>`;
+      grid.appendChild(cell); continue;
+    }
+    const dateObj = new Date(year, month, dayNum);
+    const dateStr = fmt(dateObj);
+    const sid = state.assignments[dateStr];
+    const sib = sid ? siblingById(sid) : null;
+    cell.className = 'day' + (dateStr===todayStr?' today':'') + (!sib?' empty-cell':'');
+    cell.dataset.date = dateStr;
+
+    let assignHtml = `<div class="assign"><span>Sin asignar</span></div>`;
+    if(sib){
+      cell.style.background = sib.hex+'17';
+      cell.style.borderColor = sib.hex+'55';
+      assignHtml = `<div class="assign" style="background:${sib.hex}22; color:${sib.hex};">
+        <span class="adot" style="background:${sib.hex}"></span><span>${sib.name}</span></div>`;
+    }
+    cell.innerHTML = `<span class="num">${dayNum}</span>${assignHtml}`;
+    cell.addEventListener('click',(e)=>openPopover(e.currentTarget, dateStr));
+    grid.appendChild(cell);
+  }
+}
+
+function pushHistory(date, from, to, customText){
+  const entry = {
+    ts: Date.now(),
+    actorId: currentUser ? currentUser.id : null,
+    actorName: currentUser ? currentUser.name : 'desconocido',
+    actorHex: currentUser ? currentUser.hex : '#999',
+    date, from, to,
+    text: customText || null
+  };
+  state.history.unshift(entry);
+  if(state.history.length>500) state.history = state.history.slice(0,500);
+}
+
+function openPopover(cellEl, dateStr){
+  const pop = document.getElementById('pop');
+  const backdrop = document.getElementById('backdrop');
+  let html='';
+  state.siblings.forEach(s=>{
+    html += `<div class="opt" data-sid="${s.id}"><span class="adot" style="background:${s.hex}"></span>${s.name}</div>`;
+  });
+  html += `<div class="opt clear" data-sid="">Quitar asignación</div>`;
+  pop.innerHTML = html;
+
+  const rect = cellEl.getBoundingClientRect();
+  if(window.innerWidth>640){
+    pop.style.left = Math.min(rect.left, window.innerWidth-210)+'px';
+    pop.style.top = (rect.bottom+6)+'px';
+  }
+  pop.classList.add('show');
+  backdrop.classList.add('show');
+
+  function close(){ pop.classList.remove('show'); backdrop.classList.remove('show'); backdrop.onclick=null; }
+  backdrop.onclick = close;
+
+  pop.querySelectorAll('.opt').forEach(opt=>{
+    opt.onclick = ()=>{
+      const sid = opt.dataset.sid;
+      const prevSid = state.assignments[dateStr];
+      const prevName = prevSid ? siblingById(prevSid).name : 'sin asignar';
+      if(sid){
+        state.assignments[dateStr] = sid;
+        pushHistory(dateStr, prevName, siblingById(sid).name);
+      } else {
+        delete state.assignments[dateStr];
+        pushHistory(dateStr, prevName, 'sin asignar');
+      }
+      close(); saveState(); render();
+    };
+  });
+}
+
+/* ---------------- HISTORY VIEW ---------------- */
+function renderHistory(){
+  const list = document.getElementById('historyList');
+  if(state.history.length===0){
+    list.innerHTML = `<div class="hempty">Todavía no hay cambios registrados.</div>`;
+    return;
+  }
+  list.innerHTML = state.history.map(h=>{
+    const d = new Date(h.ts);
+    const time = d.toLocaleString('es-CO', {day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit'});
+    let text;
+    if(h.text){
+      text = h.text;
+    } else {
+      const dateLabel = h.date ? new Date(h.date+'T00:00:00').toLocaleDateString('es-CO',{day:'numeric', month:'short'}) : '';
+      text = `<b>${h.actorName}</b> cambió el ${dateLabel}: ${h.from} → ${h.to}`;
+    }
+    return `<div class="hentry"><span class="hdot" style="background:${h.actorHex}"></span>
+      <div><div>${text}</div><div class="htime">${time}</div></div></div>`;
+  }).join('');
+}
+
+document.getElementById('historyBtn').onclick = ()=>{
+  renderHistory();
+  document.getElementById('historyOverlay').classList.add('show');
+};
+document.getElementById('historyClose').onclick = ()=>{
+  document.getElementById('historyOverlay').classList.remove('show');
+};
+document.getElementById('historyOverlay').onclick = (e)=>{
+  if(e.target.id==='historyOverlay') document.getElementById('historyOverlay').classList.remove('show');
+};
+
+document.getElementById('prevBtn').onclick = ()=>{ view.setMonth(view.getMonth()-1); render(); };
+document.getElementById('nextBtn').onclick = ()=>{ view.setMonth(view.getMonth()+1); render(); };
+document.getElementById('todayBtn').onclick = ()=>{ view=new Date(); view.setDate(1); render(); };
+
+loadState();
+</script>
+</body>
+</html>
